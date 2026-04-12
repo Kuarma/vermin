@@ -1,26 +1,68 @@
-﻿using Serilog;
+using Discord;
+using Discord.WebSocket;
+using Gitier.Helper;
+using Gitier.Services;
+using Serilog;
 
 namespace Gitier;
 
-public static class Program
+internal static class Program
 {
-  public static async Task Main(string[] args)
-  {
-    await CreateHostBuilder(args)
-            .Build()
-            .RunAsync();
-  }
+    private static async Task Main(string[] args)
+    {
+        Log.Logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
 
-  public static IHostBuilder CreateHostBuilder(string[] args) =>
-      Host.CreateDefaultBuilder(args)
-          .ConfigureServices((hostcontext, services) =>
-              {
-                services.AddSerilog(loggerConfiguration =>
-                    loggerConfiguration
-                      .Enrich.FromLogContext()
-                      .WriteTo.Console()
-                      .CreateLogger());
+        try
+        {
+            var builder = Host.CreateApplicationBuilder(args);
 
-                services.AddHostedService<Worker>();
-              });
+            builder.Services.AddSerilog((services, loggerConfig) => loggerConfig
+                    .Enrich.FromLogContext()
+                    .WriteTo.File(
+                        path: "logs/log.log",
+                        shared: true,
+                        rollingInterval: RollingInterval.Hour,
+                        rollOnFileSizeLimit: true,
+                        retainedFileTimeLimit: TimeSpan.FromDays(12))
+                    .WriteTo.Console()
+                    .ReadFrom.Services(services));
+
+            builder.Services.Configure<DiscordTokenOptions>(
+                    builder.Configuration.GetSection(
+                        key: nameof(DiscordTokenOptions)));
+
+            builder.Services.AddHostedService<DiscordStartupService>();
+
+            builder.Services.AddSingleton(_ =>
+                    {
+                        var config = new DiscordSocketConfig
+                        {
+                            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers,
+                            AlwaysDownloadUsers = true,
+                            LogGatewayIntentWarnings = false,
+                            UseInteractionSnowflakeDate = true,
+                            MessageCacheSize = 100,
+                        };
+
+                        return new DiscordSocketClient(config);
+                    });
+
+            var app = builder.Build();
+
+            await app.RunAsync();
+        }
+        catch (Exception exception)
+        {
+            Log.Fatal(
+                    exception: exception,
+                    messageTemplate: "Host terminated unexpectedly");
+        }
+        finally
+        {
+            await Log.CloseAndFlushAsync();
+        }
+    }
 }
