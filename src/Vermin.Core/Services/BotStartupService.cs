@@ -37,7 +37,6 @@ public class BotStartupService(
         await _socketClient.StopAsync();
     }
 
-
     private Task Log(
             LogMessage message)
     {

@@ -2,6 +2,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
+using Octokit;
 using Serilog;
 using Vermin.Models;
 using Vermin.Services;
@@ -55,10 +56,15 @@ internal static class Program
                         MessageCacheSize = 100,
                         LogLevel = LogSeverity.Info
                     });
+            builder.Services.AddSingleton(
+                    new ProductHeaderValue(
+                        name: "vermin"));
             builder.Services.AddSingleton<DiscordSocketClient>();
             builder.Services.AddSingleton<InteractionService>();
             builder.Services.AddSingleton<IRestClientProvider>(sp => sp
                     .GetRequiredService<DiscordSocketClient>());
+
+            builder.Services.AddTransient<GitHubClient>();
 
             builder.Services.AddHostedService<BotStartupService>();
             builder.Services.AddHostedService<InteractionStartupService>();

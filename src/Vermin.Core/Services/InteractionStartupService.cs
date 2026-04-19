@@ -23,7 +23,7 @@ public class InteractionStartupService(
                 assembly: Assembly.GetEntryAssembly(),
                 services: _serviceProvider);
 
-        _socketClient.Ready += RegisterCommands;
+        _socketClient.Ready += RegisterCommandsAsync;
         _socketClient.InteractionCreated += InteractionCreatedAsync;
         _interactionService.InteractionExecuted += InteractionExecutedAsync;
     }
@@ -76,7 +76,7 @@ public class InteractionStartupService(
                 ephemeral: true);
     }
 
-    private async Task RegisterCommands()
+    private async Task RegisterCommandsAsync()
     {
         await _interactionService.RegisterCommandsGloballyAsync(
                 deleteMissing: true);
