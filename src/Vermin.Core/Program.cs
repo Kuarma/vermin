@@ -2,7 +2,6 @@ using Discord;
 using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
-using Octokit;
 using Serilog;
 using Vermin.Models;
 using Vermin.Services;
@@ -11,7 +10,8 @@ namespace Vermin;
 
 internal static class Program
 {
-    private static async Task Main(string[] args)
+    private static async Task Main(
+            string[] args)
     {
         Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
@@ -20,7 +20,8 @@ internal static class Program
 
         try
         {
-            var builder = Host.CreateApplicationBuilder(args);
+            var builder = Host.CreateApplicationBuilder(
+                    args: args);
 
             builder.Services.AddSerilog((services, loggerConfig) => loggerConfig
                     .Enrich.FromLogContext()
@@ -56,15 +57,10 @@ internal static class Program
                         MessageCacheSize = 100,
                         LogLevel = LogSeverity.Info
                     });
-            builder.Services.AddSingleton(
-                    new ProductHeaderValue(
-                        name: "vermin"));
             builder.Services.AddSingleton<DiscordSocketClient>();
             builder.Services.AddSingleton<InteractionService>();
             builder.Services.AddSingleton<IRestClientProvider>(sp => sp
                     .GetRequiredService<DiscordSocketClient>());
-
-            builder.Services.AddTransient<GitHubClient>();
 
             builder.Services.AddHostedService<BotStartupService>();
             builder.Services.AddHostedService<InteractionStartupService>();
